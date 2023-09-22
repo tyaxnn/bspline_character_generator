@@ -6,13 +6,15 @@ use std::io::Write;
 use std::fs::read_to_string;
 
 //seq 
-const SEQ : u32 = 14;
-const IND1 : u32 = 7;
-const IND2 : u32 = 6;
+const SEQ : u32 = 7;
+const IND1 : u32 = 4;
+const IND2 : u32 = 2;
 
 //display settings
-const RESOLUTION : u32 = 20;
-const SCALING : u32 = 200;
+const RESOLUTION : u32 = 30;
+const SCALING : u32 = 300;
+const COMPRESS_X : f32 = 0.5;
+const BOLDNESS : f32 = 5.;
 //line alpha value
 const ALPHA : u8 = 255;
 //Charactor Component (from primitive to complicated)
@@ -176,6 +178,36 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
         KeyPressed(Key::Underline) => {
             model.bsc_name = format!("{}{}",model.bsc_name.clone(),"_");
         }
+        KeyPressed(Key::Key1) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"1");
+        }
+        KeyPressed(Key::Key2) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"2");
+        }
+        KeyPressed(Key::Key3) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"3");
+        }
+        KeyPressed(Key::Key4) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"4");
+        }
+        KeyPressed(Key::Key5) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"5");
+        }
+        KeyPressed(Key::Key6) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"6");
+        }
+        KeyPressed(Key::Key7) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"7");
+        }
+        KeyPressed(Key::Key8) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"8");
+        }
+        KeyPressed(Key::Key9) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"9");
+        }
+        KeyPressed(Key::Key0) => {
+            model.bsc_name = format!("{}{}",model.bsc_name.clone(),"0");
+        }
         KeyPressed(Key::Back) => {
             model.bsc_name.pop();
         }
@@ -192,22 +224,25 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Clear the background to dimgray
     frame.clear(WHITE);
 
-    let left = PlaceBsc{place : vec2(-1.,0.),bsc : read_bcf("./assets/bcf/hatiring.bcf")};
-    let center = PlaceBsc{place : vec2(0.,0.),bsc : model.bsc.clone()};
-    let right = PlaceBsc{place : vec2(1.,0.),bsc : read_bcf("./assets/bcf/rlike.bcf")};
+    let solo = PlaceBsc{place : vec2(0.,-0.),bsc : model.bsc.clone()};
+    let left = PlaceBsc{place : vec2(-1. * COMPRESS_X,-1.2),bsc : read_bcf("./assets/bcf/hatiring.bcf")};
+    let center = PlaceBsc{place : vec2(0.,-1.2),bsc : model.bsc.clone()};
+    let right = PlaceBsc{place : vec2(1. * COMPRESS_X,-1.2),bsc : read_bcf("./assets/bcf/gourd.bcf")};
 
-    let sentence : Sentence = vec![left,center,right];
+    let sentence : Sentence = vec![solo,left,center,right];
 
     //let shirataki = convert_bsc_2_shirataki(model.bsc.clone());
     let shirataki = convert_sentence_2_shirataki(sentence);
 
+    
     //drawing area 
     draw.rect()
-        .w_h(SCALING as f32, SCALING as f32)
+        .w_h(SCALING as f32 * COMPRESS_X, SCALING as f32)
         .color(LIGHTGRAY);
-
+    
 
     //draw shirataki
+    
     for j in shirataki.clone() {
         let iterator_points = for_pointes_colored(&j,SCALING as f32).into_iter();
 
@@ -218,7 +253,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .points_colored(iterator_points);
 
     }
-
+    
 
     //draw text
     draw.text(
@@ -234,7 +269,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 
     
-
+    
 
     draw.to_frame(app, &frame).unwrap();
 }
@@ -300,7 +335,7 @@ fn for_pointes_colored(input : &D2Line, scaling : f32) ->  Vec<(Vec2,Rgba8)> {
 
         let x_nannou = (i.x - 0.5) * scaling;
         let y_nannou = (i.y - 0.5) * scaling;
-        out_put.push((vec2(x_nannou,y_nannou),rgba8(240,160,180,ALPHA)));
+        out_put.push((vec2(x_nannou,y_nannou),rgba8(170,170,170,ALPHA)));
     }
     out_put
 }
@@ -330,6 +365,8 @@ fn convert_sentence_2_shirataki(sentence : Sentence) -> Shirataki{
     let mut seq_part : D4Line = Vec::new();
     let mut d4shirataki : D4shirataki = Vec::new();
 
+    let mut y_before = 0.;
+
     //loop for all bsc
     for one_p_bsc in sentence{
         //change coordinate by place
@@ -337,19 +374,26 @@ fn convert_sentence_2_shirataki(sentence : Sentence) -> Shirataki{
         let seq : D4Line = one_p_bsc.bsc.seq;
         let ind : Vec<D4Line> = one_p_bsc.bsc.ind;
 
+        if y_before > place.y || seq.len() < 4{
+            d4shirataki.push(seq_part.clone());
+            seq_part.clear()
+        }
+
         //update seq
         let mut new_seq = seq.into_iter()
-            .map(|v4| v4 + vec4(place.x,place.y,0.,0.,))
+            .map(|v4| vec4((v4.x-0.5)*COMPRESS_X + 0.5,v4.y,v4.z,v4.w) + vec4(place.x,place.y,0.,0.,))
             .collect();
 
         seq_part.append(&mut new_seq);
         //update ind
         for a_ind in ind{
             let new_aind = a_ind.into_iter()
-                .map(|v4| v4 + vec4(place.x,place.y,0.,0.,))
+                .map(|v4| vec4((v4.x-0.5)*COMPRESS_X + 0.5,v4.y,v4.z,v4.w) + vec4(place.x,place.y,0.,0.,))
                 .collect();
             d4shirataki.push(new_aind);
         }
+
+        y_before = place.y;
     }
 
     d4shirataki.push(seq_part);
@@ -368,34 +412,38 @@ fn convert_sentence_2_shirataki(sentence : Sentence) -> Shirataki{
 //convert row (more light) d4line to high (more heavy) d4line by using bspline
 fn bspline_for_d4line(row_d4line : &D4Line) -> D4Line {
 
-    //set "knots"
-    let mut knots : Vec<f32> = Vec::new();
-
-    knots.push(-2.0 as f32);
-    knots.push(-2.0 as f32);
-
-    let points_num = row_d4line.len();
-
-    for i in 0..points_num{
-        let para = (i+1) as f32 / points_num as f32 *4.0 -2.0;
-        knots.push(para);
-    }
-
-    knots.push(2.0 as f32);
-    knots.push(2.0 as f32);
-
-    let degree = 3;
-    let bspline = bspline::BSpline::new(degree, row_d4line.clone(), knots);
-
     let mut new_d4line = Vec::new();
 
-    //at here, you excute smoothing
-    for i in 0..10*points_num{
-        let first = bspline.knot_domain().0;
-        let last = bspline.knot_domain().1;
-        let para = (last - first) * (i as f32 /(10*points_num) as f32) + first;
+    //lowwer than 4 causes error
+    if row_d4line.len() < 4{}
+    else{
+        //set "knots"
+        let mut knots : Vec<f32> = Vec::new();
 
-        new_d4line.push(bspline.point(para));
+        knots.push(-2.0 as f32);
+        knots.push(-2.0 as f32);
+
+        let points_num = row_d4line.len();
+
+        for i in 0..points_num{
+            let para = (i+1) as f32 / points_num as f32 *4.0 -2.0;
+            knots.push(para);
+        }
+
+        knots.push(2.0 as f32);
+        knots.push(2.0 as f32);
+
+        let degree = 3;
+        let bspline = bspline::BSpline::new(degree, row_d4line.clone(), knots);
+
+        //at here, you excute smoothing
+        for i in 0..10*points_num{
+            let first = bspline.knot_domain().0;
+            let last = bspline.knot_domain().1;
+            let para = (last - first) * (i as f32 /(10*points_num) as f32) + first;
+
+            new_d4line.push(bspline.point(para));
+        }
     }
 
     new_d4line
@@ -412,7 +460,7 @@ fn d4_2_d2(d4shirataki : Vec<D4Line>) -> Shirataki {
             let mul = {
                 let jf = j as f32;
                 let maxf = (RESOLUTION+1) as f32;
-                jf / maxf * 10.
+                jf / maxf * BOLDNESS
             };
             for i in 0..d4line.len(){
                 d2line.push(
